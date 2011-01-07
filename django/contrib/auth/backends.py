@@ -1,5 +1,8 @@
 from django.db import connection
-from django.contrib.auth.models import User, Permission
+from django.core.apps import cache
+
+User = cache.get_model('auth', 'User')
+Permission = cache.get_model('auth', 'Permission')
 
 
 class ModelBackend(object):
