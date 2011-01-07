@@ -31,9 +31,9 @@ class Command(NoArgsCommand):
 
         # Import the 'management' module within each installed app, to register
         # dispatcher events.
-        for app_name in cache.installed_apps:
+        for app in cache.app_instances:
             try:
-                import_module('.management', app_name)
+                import_module('.management', app.path)
             except ImportError, exc:
                 # This is slightly hackish. We want to ignore ImportErrors
                 # if the "management" module itself is missing -- but we don't
