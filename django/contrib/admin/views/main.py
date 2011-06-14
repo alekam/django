@@ -24,10 +24,14 @@ PAGE_VAR = 'p'
 SEARCH_VAR = 'q'
 TO_FIELD_VAR = 't'
 IS_POPUP_VAR = 'pop'
+POPUP_CALLBACK_VAR = '_callback'
+POPUP_CALLBACK_DEFAULT = 'dismissRelatedLookupPopup'
 ERROR_FLAG = 'e'
 
 IGNORED_PARAMS = (
-    ALL_VAR, ORDER_VAR, ORDER_TYPE_VAR, SEARCH_VAR, IS_POPUP_VAR, TO_FIELD_VAR)
+    ALL_VAR, ORDER_VAR, ORDER_TYPE_VAR, SEARCH_VAR, IS_POPUP_VAR,
+    TO_FIELD_VAR, POPUP_CALLBACK_VAR
+)
 
 # Text to display within change-list table cells if the value is blank.
 EMPTY_CHANGELIST_VALUE = ugettext_lazy('(None)')
@@ -65,6 +69,7 @@ class ChangeList(object):
             self.page_num = 0
         self.show_all = ALL_VAR in request.GET
         self.is_popup = IS_POPUP_VAR in request.GET
+        self.popup_callback = request.REQUEST.get(POPUP_CALLBACK_VAR)
         self.to_field = request.GET.get(TO_FIELD_VAR)
         self.params = dict(request.GET.items())
         if PAGE_VAR in self.params:
@@ -153,7 +158,7 @@ class ChangeList(object):
             result_list = self.query_set._clone()
         else:
             try:
-                result_list = paginator.page(self.page_num+1).object_list
+                result_list = paginator.page(self.page_num + 1).object_list
             except InvalidPage:
                 raise IncorrectLookupParameters
 
@@ -378,3 +383,8 @@ class ChangeList(object):
 
     def url_for_result(self, result):
         return "%s/" % quote(getattr(result, self.pk_attname))
+
+    def get_popup_callback(self):
+        if self.popup_callback is not None:
+            return self.popup_callback
+        return POPUP_CALLBACK_DEFAULT
