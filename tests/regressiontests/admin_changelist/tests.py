@@ -323,6 +323,8 @@ class FilteredChildAdmin(admin.ModelAdmin):
 
 class MockRequest(object):
     GET = {}
+    def __init__(self):
+        self.REQUEST = self.GET
 
 class CustomPaginator(Paginator):
     def __init__(self, queryset, page_size, orphans=0, allow_empty_first_page=True):
@@ -342,10 +344,12 @@ class QuartetAdmin(admin.ModelAdmin):
 class ChordsBandAdmin(admin.ModelAdmin):
     list_filter = ['members']
 
-class MockFilterRequest(object):
+class MockFilterRequest(MockRequest):
     def __init__(self, filter, q):
         self.GET = {filter: q}
+        super(MockFilterRequest, self).__init__()
 
-class MockSearchRequest(object):
+class MockSearchRequest(MockRequest):
     def __init__(self, q):
         self.GET = {SEARCH_VAR: q}
+        super(MockSearchRequest, self).__init__()
