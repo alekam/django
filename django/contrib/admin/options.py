@@ -721,12 +721,15 @@ class ModelAdmin(BaseModelAdmin):
             self.message_user(request, msg + ' ' + _("You may edit it again below."))
             if "_popup" in request.POST:
                 post_url_continue += "?_popup=1"
+                if '_callback' in request.REQUEST:
+                    post_url_continue += '&_callback=%s' % request.REQUEST.get('_callback')
             return HttpResponseRedirect(post_url_continue % pk_value)
 
         if "_popup" in request.POST:
-            return HttpResponse('<script type="text/javascript">opener.dismissAddAnotherPopup(window, "%s", "%s");</script>' % \
+            action = request.REQUEST.get('_callback', 'dismissAddAnotherPopup')
+            return HttpResponse('<script type="text/javascript">opener.%s(window, "%s", "%s");</script>' % \
                 # escape() calls force_unicode.
-                (escape(pk_value), escapejs(obj)))
+                (action, escape(pk_value), escapejs(obj)))
         elif "_addanother" in request.POST:
             self.message_user(request, msg + ' ' + (_("You may add another %s below.") % force_unicode(opts.verbose_name)))
             return HttpResponseRedirect(request.path)
@@ -934,6 +937,8 @@ class ModelAdmin(BaseModelAdmin):
             'root_path': self.admin_site.root_path,
             'app_label': opts.app_label,
         }
+        if '_callback' in request.REQUEST:
+            context.update({'popup_callback': request.REQUEST.get('_callback')})
         context.update(extra_context or {})
         return self.render_change_form(request, context, form_url=form_url, add=True)
 
@@ -1160,6 +1165,7 @@ class ModelAdmin(BaseModelAdmin):
             'selection_note_all': selection_note_all % {'total_count': cl.result_count},
             'title': cl.title,
             'is_popup': cl.is_popup,
+            'popup_callback': cl.popup_callback,
             'cl': cl,
             'media': media,
             'has_add_permission': self.has_add_permission(request),

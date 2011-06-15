@@ -183,7 +183,7 @@ def items_for_result(cl, result, form):
             value = result.serializable_value(attr)
             result_id = repr(force_unicode(value))[1:]
             yield mark_safe(u'<%s%s><a href="%s"%s>%s</a></%s>' % \
-                (table_tag, row_class, url, (cl.is_popup and ' onclick="opener.dismissRelatedLookupPopup(window, %s); return false;"' % result_id or ''), conditional_escape(result_repr), table_tag))
+                (table_tag, row_class, url, (cl.is_popup and ' onclick="opener.%s(window, %s); return false;"' % (cl.get_popup_callback(), result_id) or ''), conditional_escape(result_repr), table_tag))
         else:
             # By default the fields come from ModelAdmin.list_editable, but if we pull
             # the fields out of the form instead of list_editable custom admins

@@ -60,7 +60,7 @@
         <ul class="object-tools">
           {% block object-tools-items %}
             <li>
-              <a href="add/{% if is_popup %}?_popup=1{% endif %}" class="addlink">
+              <a href="add/{% if is_popup %}?_popup=1{% if popup_callback %}&_callback={{ popup_callback }}{% endif %}{% endif %}" class="addlink">
                 {% blocktrans with cl.opts.verbose_name as name %}Add {{ name }}{% endblocktrans %}
               </a>
             </li>
