@@ -766,6 +766,12 @@ class ModelAdmin(BaseModelAdmin):
                 return HttpResponseRedirect(request.path + "?_popup=1")
             else:
                 return HttpResponseRedirect(request.path)
+
+        if "_popup" in request.POST and '_callback' in request.REQUEST:
+            action = request.REQUEST.get('_callback')
+            return HttpResponse('<script type="text/javascript">opener.%s(window, "%s", "%s");</script>' % \
+                # escape() calls force_unicode.
+                (action, escape(pk_value), escapejs(obj)))
         elif "_saveasnew" in request.POST:
             msg = _('The %(name)s "%(obj)s" was added successfully. You may edit it again below.') % {'name': force_unicode(verbose_name), 'obj': obj}
             self.message_user(request, msg)
