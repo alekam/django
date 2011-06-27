@@ -131,6 +131,10 @@ class FieldsTests(TestCase):
         self.assertEqual(f.max_length, None)
         self.assertEqual(f.min_length, 10)
 
+    def test_charfield_normalize(self):
+        f = CharField(normalize=lambda x: x.strip())
+        self.assertRaisesErrorWithMessage(ValidationError, "[u'This field is required.']", f.clean, "  \t")
+
     # IntegerField ################################################################
 
     def test_integerfield_1(self):

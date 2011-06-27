@@ -278,6 +278,23 @@ as the rendered output.
 See the :ref:`format localization <format-localization>` documentation for
 more information.
 
+``normalize``
+~~~~~~~~~~~~
+
+.. versionadded:: New in Django development version
+
+.. attribute:: Field.normalize
+
+The ``normalize`` argument lets you normalize the input data before it is validated.
+A common use-case is stripping leading and trailinig whitespace from CharFields::
+
+    >>> foo = forms.CharField(normalize=lambda x: x.strip())
+    >>> foo.clean('   ')
+    Traceback (most recent call last):
+      ...
+    ValidationError: [u'This field is required.']    
+
+
 .. _built-in fields:
 
 Built-in ``Field`` classes

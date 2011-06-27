@@ -54,7 +54,7 @@ class Field(object):
 
     def __init__(self, required=True, widget=None, label=None, initial=None,
                  help_text=None, error_messages=None, show_hidden_initial=False,
-                 validators=[], localize=False):
+                 validators=[], localize=False, normalize=None):
         # required -- Boolean that specifies whether the field is required.
         #             True by default.
         # widget -- A Widget class, or instance of a Widget class, that should
@@ -82,6 +82,7 @@ class Field(object):
             self.help_text = u''
         else:
             self.help_text = smart_unicode(help_text)
+        self.normalize = normalize
         widget = widget or self.widget
         if isinstance(widget, type):
             widget = widget()
@@ -149,6 +150,8 @@ class Field(object):
         Raises ValidationError for any errors.
         """
         value = self.to_python(value)
+        if self.normalize:
+            value = self.normalize(value)
         self.validate(value)
         self.run_validators(value)
         return value
@@ -450,9 +453,10 @@ class EmailField(CharField):
     }
     default_validators = [validators.validate_email]
 
-    def clean(self, value):
-        value = self.to_python(value).strip()
-        return super(EmailField, self).clean(value)
+    def __init__(self, *args, **kwargs):
+        super(EmailField, self).__init__(*args, **kwargs)
+        if self.normalize is None:
+            self.normalize = lambda value: value.strip()
 
 class FileField(Field):
     widget = ClearableFileInput
