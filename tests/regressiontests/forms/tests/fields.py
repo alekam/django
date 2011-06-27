@@ -132,8 +132,12 @@ class FieldsTests(TestCase):
         self.assertEqual(f.min_length, 10)
 
     def test_charfield_normalize(self):
-        f = CharField(normalize=lambda x: x.strip())
+        f = CharField()
         self.assertRaisesErrorWithMessage(ValidationError, "[u'This field is required.']", f.clean, "  \t")
+
+    def test_charfield_normalize_false(self):
+        f = CharField(normalize=False)
+        self.assertEqual("  \t", f.clean("  \t"))
 
     # IntegerField ################################################################
 
