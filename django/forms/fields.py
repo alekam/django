@@ -201,6 +201,8 @@ class CharField(Field):
             self.validators.append(validators.MinLengthValidator(min_length))
         if max_length is not None:
             self.validators.append(validators.MaxLengthValidator(max_length))
+        if self.normalize is None:
+            self.normalize = lambda value: value.strip()
 
     def to_python(self, value):
         "Returns a Unicode object."
@@ -424,7 +426,7 @@ class DateTimeField(Field):
         raise ValidationError(self.error_messages['invalid'])
 
 class RegexField(CharField):
-    def __init__(self, regex, max_length=None, min_length=None, error_message=None, *args, **kwargs):
+    def __init__(self, regex, max_length=None, min_length=None, error_message=None, normalize=False,  *args, **kwargs):
         """
         regex can be either a string or a compiled regular expression object.
         error_message is an optional error message to use, if
@@ -435,7 +437,7 @@ class RegexField(CharField):
             error_messages = kwargs.get('error_messages') or {}
             error_messages['invalid'] = error_message
             kwargs['error_messages'] = error_messages
-        super(RegexField, self).__init__(max_length, min_length, *args, **kwargs)
+        super(RegexField, self).__init__(max_length, min_length, normalize=normalize, *args, **kwargs)
         if isinstance(regex, basestring):
             regex = re.compile(regex)
         self.regex = regex
@@ -446,11 +448,6 @@ class EmailField(CharField):
         'invalid': _(u'Enter a valid e-mail address.'),
     }
     default_validators = [validators.validate_email]
-
-    def __init__(self, *args, **kwargs):
-        super(EmailField, self).__init__(*args, **kwargs)
-        if self.normalize is None:
-            self.normalize = lambda value: value.strip()
 
 class FileField(Field):
     widget = ClearableFileInput
