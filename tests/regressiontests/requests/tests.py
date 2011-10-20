@@ -2,11 +2,13 @@ import time
 from datetime import datetime, timedelta
 from StringIO import StringIO
 
+from django.conf import settings
 from django.core.handlers.modpython import ModPythonRequest
 from django.core.handlers.wsgi import WSGIRequest, LimitedStream
 from django.http import HttpRequest, HttpResponse, parse_cookie
 from django.utils import unittest
 from django.utils.http import cookie_date
+
 
 class RequestsTests(unittest.TestCase):
     def test_httprequest(self):
@@ -57,6 +59,94 @@ class RequestsTests(unittest.TestCase):
         request.path = ''
         self.assertEqual(request.build_absolute_uri(location="/path/with:colons"),
             'http://www.example.com/path/with:colons')
+
+    def test_http_get_host(self):
+        old_USE_X_FORWARDED_HOST = settings.USE_X_FORWARDED_HOST
+        try:
+            settings.USE_X_FORWARDED_HOST = False
+
+            # Check if X_FORWARDED_HOST is provided.
+            request = HttpRequest()
+            request.META = {
+                u'HTTP_X_FORWARDED_HOST': u'forward.com',
+                u'HTTP_HOST': u'example.com',
+                u'SERVER_NAME': u'internal.com',
+                u'SERVER_PORT': 80,
+            }
+            # X_FORWARDED_HOST is ignored.
+            self.assertEqual(request.get_host(), 'example.com')
+
+            # Check if X_FORWARDED_HOST isn't provided.
+            request = HttpRequest()
+            request.META = {
+                u'HTTP_HOST': u'example.com',
+                u'SERVER_NAME': u'internal.com',
+                u'SERVER_PORT': 80,
+            }
+            self.assertEqual(request.get_host(), 'example.com')
+
+            # Check if HTTP_HOST isn't provided.
+            request = HttpRequest()
+            request.META = {
+                u'SERVER_NAME': u'internal.com',
+                u'SERVER_PORT': 80,
+            }
+            self.assertEqual(request.get_host(), 'internal.com')
+
+            # Check if HTTP_HOST isn't provided, and we're on a nonstandard port
+            request = HttpRequest()
+            request.META = {
+                u'SERVER_NAME': u'internal.com',
+                u'SERVER_PORT': 8042,
+            }
+            self.assertEqual(request.get_host(), 'internal.com:8042')
+
+        finally:
+            settings.USE_X_FORWARDED_HOST = old_USE_X_FORWARDED_HOST
+
+    def test_http_get_host_with_x_forwarded_host(self):
+        old_USE_X_FORWARDED_HOST = settings.USE_X_FORWARDED_HOST
+        try:
+            settings.USE_X_FORWARDED_HOST = True
+
+            # Check if X_FORWARDED_HOST is provided.
+            request = HttpRequest()
+            request.META = {
+                u'HTTP_X_FORWARDED_HOST': u'forward.com',
+                u'HTTP_HOST': u'example.com',
+                u'SERVER_NAME': u'internal.com',
+                u'SERVER_PORT': 80,
+            }
+            # X_FORWARDED_HOST is obeyed.
+            self.assertEqual(request.get_host(), 'forward.com')
+
+            # Check if X_FORWARDED_HOST isn't provided.
+            request = HttpRequest()
+            request.META = {
+                u'HTTP_HOST': u'example.com',
+                u'SERVER_NAME': u'internal.com',
+                u'SERVER_PORT': 80,
+            }
+            self.assertEqual(request.get_host(), 'example.com')
+
+            # Check if HTTP_HOST isn't provided.
+            request = HttpRequest()
+            request.META = {
+                u'SERVER_NAME': u'internal.com',
+                u'SERVER_PORT': 80,
+            }
+            self.assertEqual(request.get_host(), 'internal.com')
+
+            # Check if HTTP_HOST isn't provided, and we're on a nonstandard port
+            request = HttpRequest()
+            request.META = {
+                u'SERVER_NAME': u'internal.com',
+                u'SERVER_PORT': 8042,
+            }
+            self.assertEqual(request.get_host(), 'internal.com:8042')
+
+        finally:
+            settings.USE_X_FORWARDED_HOST = old_USE_X_FORWARDED_HOST
 
     def test_near_expiration(self):
         "Cookie will expire when an near expiration time is provided"
@@ -199,6 +289,27 @@ class RequestsTests(unittest.TestCase):
                                'wsgi.input': StringIO(payload)})
         self.assertEqual(request.POST, {u'name': [u'value']})
         self.assertRaises(Exception, lambda: request.raw_post_data)
+
+    def test_POST_multipart_with_content_length_zero(self):
+        """
+        Multipart POST requests with Content-Length >= 0 are valid and need to be handled.
+        """
+        # According to:
+        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.13
+        # Every request.POST with Content-Length >= 0 is a valid request,
+        # this test ensures that we handle Content-Length == 0.
+        payload = "\r\n".join([
+                '--boundary',
+                'Content-Disposition: form-data; name="name"',
+                '',
+                'value',
+                '--boundary--'
+                ''])
+        request = WSGIRequest({'REQUEST_METHOD': 'POST',
+                               'CONTENT_TYPE': 'multipart/form-data; boundary=boundary',
+                               'CONTENT_LENGTH': 0,
+                               'wsgi.input': StringIO(payload)})
+        self.assertEqual(request.POST, {})
 
     def test_read_by_lines(self):
         request = WSGIRequest({'REQUEST_METHOD': 'POST', 'wsgi.input': StringIO('name=value')})
